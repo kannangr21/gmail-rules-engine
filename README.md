@@ -61,7 +61,8 @@ This process for last 25 emails, the default value is set to 10
 # Configuration
 
 `rules_engine/rules.json`
-```{
+```
+{
   "predicate": "any",
   "rules": [
     {
@@ -89,7 +90,8 @@ This process for last 25 emails, the default value is set to 10
 
 - Unit tests (e.g., predicate evaluations)
 - Integration tests (e.g., end-to-end rule execution)  
-- `pytest tests/ -v` will run the test cases
+- `pytest tests/ -v` will run the test cases  
+
 ![Test cases](./tests_screenshot.png)
 
 # Structure
