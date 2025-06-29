@@ -1,14 +1,136 @@
-import os.path
-import base64
+import os
 import json
 import sqlite3
+import base64
+import sys
 
-from utils import parse_header, extract_body
-from auth import authenticate_google_api
-from database.db import save_to_db
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 
 
-def list_messages(service, email_count):
+"""
+---------- Util functions ----------
+"""
+def parse_header(headers, name):
+    for h in headers:
+        if h["name"].lower() == name.lower():
+            return h["value"]
+    return ""
+
+def extract_body(payload):
+    if 'parts' in payload:
+        for part in payload['parts']:
+            if part['mimeType'] == 'text/plain':
+                return base64.urlsafe_b64decode(part['body']['data']).decode('utf-8', errors='ignore')
+    elif 'body' in payload and 'data' in payload['body']:
+        return base64.urlsafe_b64decode(payload['body']['data']).decode('utf-8', errors='ignore')
+    return ""
+
+
+"""
+---------- Google Authentication Call methods ----------
+"""
+def authenticate_google_api(service_name, version, scopes, token_file="token.json", creds_file="credentials.json"):
+    """
+    Generic Google API authentication handler.
+    Args:
+        service_name (str): The name of the Google API (e.g., 'gmail', 'drive')
+        version (str): The version of the API (e.g., 'v1')
+        scopes (list): List of OAuth scopes required
+        token_file (str): Path to the local token cache
+        creds_file (str): Path to your OAuth client secrets file
+    Returns:
+        Authorized service object
+    """
+    try:
+        creds = None
+
+        # Load token if exists
+        if os.path.exists(token_file):
+            creds = Credentials.from_authorized_user_file(token_file, scopes)
+
+        # If no valid token, log in and save one
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                # Check if credentials file exists
+                if not os.path.exists(creds_file):
+                    raise FileNotFoundError(f"Credentials file '{creds_file}' not found. Please download from Google Cloud Console.")
+                
+                # Start OAuth flow
+                flow = InstalledAppFlow.from_client_secrets_file(creds_file, scopes)
+                creds = flow.run_local_server(port=0)
+
+            # Save the credentials for future use
+            with open(token_file, 'w') as token:
+                token.write(creds.to_json())
+
+        # Build and return the service
+        return build(service_name, version, credentials=creds)
+        
+    except Exception as e:
+        print(f"Authentication error: {e}")
+        raise
+
+def authenticate_gmail():
+    """
+    Gmail specific authentication call with Gmail scope
+    """
+    SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
+    service = authenticate_google_api("gmail", "v1", SCOPES)
+    return service
+
+"""
+---------- Database handler methods ----------
+"""
+def init_db():
+    """
+    Initialize the SQLite database and create the emails table if it doesn't exist.
+    """
+    conn = sqlite3.connect("emails.db")
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS emails (
+                    id TEXT PRIMARY KEY,
+                    thread_id TEXT,
+                    sender TEXT,
+                    recipient TEXT,
+                    subject TEXT,
+                    snippet TEXT,
+                    message_body TEXT,
+                    received_at TEXT,
+                    is_read INTEGER,
+                    label_ids TEXT
+                )''')
+    conn.commit()
+    conn.close()
+
+def save_to_db(data):
+    """
+    Save email data to SQLite database
+    """
+    try:
+        conn = sqlite3.connect("emails.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO emails (id, thread_id, sender, recipient, subject, snippet, message_body, received_at, is_read, label_ids)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', data)
+        conn.commit()
+        conn.close()
+        print(f"Saved to database: {data[4][:40]}...")  # data[4] is subject
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+    except Exception as e:
+        print(f"Error saving to database: {e}")
+
+
+"""
+---------- Get & store emails core functionality ----------
+"""
+def fetch_emails(service, email_count):
     """
     Fetch and display list of recent Gmail messages
     """
@@ -64,15 +186,15 @@ def list_messages(service, email_count):
         print(f"Error fetching messages: {e}")
         raise
 
-def authenticate_gmail():
-    """
-    Authenticate and get Gmail service
-    """
-    SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
-    service = authenticate_google_api("gmail", "v1", SCOPES)
-    return service
 
-def fetch_and_store_emails(email_count):
+"""
+---------- Execution ----------
+"""
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        emails_count = sys.argv[1]
+    else:
+        emails_count = 10    
+    init_db()
     service = authenticate_gmail()
-    # List recent messages
-    list_messages(service, email_count)
+    fetch_emails(service, emails_count)

@@ -1,6 +1,6 @@
 # Gmail Rules Engine
 
-A scalable, modular Python application that integrates with Gmail API to automate email processing based on configurable rules. Designed with maintainability in mind — using token caching, an authentication layer, and a config-driven rules engine.
+A Python application that integrates with Gmail API to automate email processing based on configurable rules. Designed with maintainability in mind — using token caching, an authentication wrapper, and a config-driven rules engine.
 
 # Description
 
@@ -42,25 +42,31 @@ pip install -r requirements.txt
 - Download the `credentials.json` and place it in the project root
 
 # Usage
-To run the pipeline (fetch + process), use:
+To fetch emails from Gmail, use:
 ```
-python main.py
+python fetch_emails.py
 ```
 This will:
 1. Authenticate with Gmail
-2. Fetch and cache new emails in emails.db
-3. Apply rules from rules_engine/rules.json
-4. Perform actions on matched emails
+2. Fetch and cache new emails in emails.db (default: 10 emails)
 
-To run the pipeline and wish to specify the number of emails to fetch, pass it as a system argument
+To specify the number of emails to fetch, pass it as a system argument:
 ```
-python main.py 25
+python fetch_emails.py 25
 ```
-This process for last 25 emails, the default value is set to 10
+
+To process emails according to rules:
+```
+python process_rules.py
+```
+This will:
+1. Load rules from rules.json
+2. Apply rules to cached emails
+3. Perform actions on matched emails
 
 # Configuration
 
-`rules_engine/rules.json`
+`rules.json`
 ```
 {
   "predicate": "any",
@@ -68,20 +74,25 @@ This process for last 25 emails, the default value is set to 10
     {
       "field": "subject",
       "predicate": "contains",
-      "value": "invoice"
+      "value": "urgent"
+    },
+    {
+      "field": "received_at",
+      "predicate": "less_than_days",
+      "value": "7"
     }
   ],
   "actions": [
-    "mark_as_read",
-    { "type": "move_to_label", "value": "Finance" }
+    "mark_as_unread",
+    { "type": "move_to_label", "value": "Priority" }
   ]
 }
 ```
 **predicate**: `"any"` or `"all"` — logical grouping of rule conditions
 
 **rules**: 
-- field: subject, sender, message_body, received_at, etc.
-- predicate: contains, equals, does_not_equal, greater_than_days, etc.
+- field: subject, sender, message_body, received_at, label_ids
+- predicate: contains, equals, does_not_equal, starts_with, ends_with, less_than_days, greater_than_days
 - value: The value to match
 
 **actions**: mark_as_read, mark_as_unread, move_to_label
@@ -97,23 +108,12 @@ This process for last 25 emails, the default value is set to 10
 # Structure
 ```
 .
-├── main.py                  # Entrypoint to run both fetching and processing
-├── auth.py                  # Gmail OAuth 2.0 logic with token caching
-├── fetch_emails.py          # Email fetching and SQLite insertion
-├── utils.py                 # Shared utility functions
+├── fetch_emails.py          # Email fetching, authentication & SQLite insertion
+├── process_rules.py         # Core rules engine logic with predicates & actions
 ├── credentials.json         # Your OAuth credentials
 ├── token.json               # Cached access/refresh tokens
 ├── emails.db                # SQLite database for storing fetched emails
-│
-├── database/
-│   └── db.py                # Database schema, connection logic & methods
-│
-├── rules_engine/
-│   ├── process_rules.py     # Core rules engine logic
-│   ├── actions.py           # Available email actions
-│   ├── fields.py            # Field extraction helpers
-│   ├── predicates.py        # Logical predicate implementations
-│   └── rules.json           # Rule configuration file
+├── rules.json               # Rule configuration file
 │
 ├── tests/
 │   ├── test_evaluate.py     # Unit tests for rule evaluation
