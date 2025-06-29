@@ -1,0 +1,20 @@
+{
+    "predicate": "all",
+    "rules": [
+      {
+        "field": "subject",
+        "predicate": "contains",
+        "value": "Test"
+      },
+      {
+        "field": "sender",
+        "predicate": "contains",
+        "value": "@gmail.com"
+      }
+    ],
+    "actions": [
+      "mark_as_read",
+      "move_to_label:Processed"
+    ]
+  }
+  
