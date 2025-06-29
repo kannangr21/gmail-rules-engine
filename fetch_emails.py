@@ -8,13 +8,13 @@ from auth import authenticate_google_api
 from database.db import save_to_db
 
 
-def list_messages(service):
+def list_messages(service, email_count):
     """
     Fetch and display list of recent Gmail messages
     """
     try:
         # Get list of messages from Gmail API
-        results = service.users().messages().list(userId='me', maxResults=10).execute()
+        results = service.users().messages().list(userId='me', maxResults=email_count).execute()
         messages = results.get('messages', [])
 
         print(f"\nTotal fetched: {len(messages)}")
@@ -72,7 +72,7 @@ def authenticate_gmail():
     service = authenticate_google_api("gmail", "v1", SCOPES)
     return service
 
-def fetch_and_store_emails():
+def fetch_and_store_emails(email_count):
     service = authenticate_gmail()
     # List recent messages
-    list_messages(service)
+    list_messages(service, email_count)
