@@ -1,0 +1,24 @@
+{
+    "predicate": "all",
+    "rules": [
+        {
+          "field": "subject",
+          "predicate": "contains",
+          "value": "Test"
+        },
+        {
+          "field": "sender",
+          "predicate": "contains",
+          "value": "@gmail.com"
+        },
+        {
+          "field": "received_at",
+          "predicate": "less_than_days",
+          "value": "7"
+        }
+      ],
+    "actions": [
+      "mark_as_unread",
+      { "type": "move_to_label", "value": "Processed" }
+    ]
+  }

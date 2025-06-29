@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 # Add the parent directory to the path so we can import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from rules_engine.process_rules import evaluate_rule
+from process_rules import evaluate_rule
 
 # Sample mock email (matches structure from your DB)
 mock_email = {
