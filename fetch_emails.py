@@ -90,11 +90,7 @@ def authenticate_gmail():
     service = authenticate_google_api("gmail", "v1", SCOPES)
     return service
 
-if __name__ == '__main__':
-    try:
-        service = authenticate_gmail()
-        # List recent messages
-        list_messages(service)
-    except Exception as e:
-        print(f"Script failed: {e}")
-        exit(1)
+def fetch_and_store_emails():
+    service = authenticate_gmail()
+    # List recent messages
+    list_messages(service)

@@ -85,10 +85,3 @@ def process_emails():
     except Exception as e:
         print(f"Error in process_emails: {e}")
         raise
-
-if __name__ == "__main__":
-    try:
-        process_emails()
-    except Exception as e:
-        print(f"Script failed: {e}")
-        exit(1)
