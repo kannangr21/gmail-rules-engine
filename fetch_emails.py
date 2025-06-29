@@ -2,11 +2,9 @@ import os.path
 import base64
 import json
 import sqlite3
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
+
 from utils import parse_header, extract_body
+from auth import authenticate_google_api
 
 def save_to_db(data):
     """
@@ -27,45 +25,6 @@ def save_to_db(data):
     except Exception as e:
         print(f"Error saving to database: {e}")
 
-# If modifying scopes, delete token.json
-SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
-
-def authenticate_gmail():
-    """
-    Authenticate with Gmail API using OAuth 2.0
-    Returns authenticated Gmail service object
-    """
-    try:
-        creds = None
-
-        # Load token if exists in cache
-        if os.path.exists('token.json'):
-            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-
-        # If no valid token, log in and save one
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                # Refresh the token if it's expired
-                creds.refresh(Request())
-            else:
-                # Start OAuth flow
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
-                creds = flow.run_local_server(port=0)
-            
-            # Save the credentials for future use in cache
-            with open('token.json', 'w') as token:
-                token.write(creds.to_json())
-
-        # Return authorized Gmail API client
-        service = build('gmail', 'v1', credentials=creds)
-        return service
-    except FileNotFoundError:
-        print("credentials.json not found. Please download from Google Cloud Console")
-        raise
-    except Exception as e:
-        print(f"Authentication error: {e}")
-        raise
 
 def list_messages(service):
     """
@@ -123,10 +82,16 @@ def list_messages(service):
         print(f"Error fetching messages: {e}")
         raise
 
+def authenticate_gmail():
+    """
+    Authenticate and get Gmail service
+    """
+    SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
+    service = authenticate_google_api("gmail", "v1", SCOPES)
+    return service
 
 if __name__ == '__main__':
     try:
-        # Authenticate and get Gmail service
         service = authenticate_gmail()
         # List recent messages
         list_messages(service)

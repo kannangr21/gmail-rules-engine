@@ -166,7 +166,7 @@ def process_emails():
         # Fetch emails from database
         emails = fetch_emails()
         
-        # Authenticate with Gmail API
+        # Authenticate with Gmail API   
         service = authenticate_gmail()
 
         # Extract configuration parameters
