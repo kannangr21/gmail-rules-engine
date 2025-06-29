@@ -1,5 +1,5 @@
 {
-  "predicate": "any",
+  "predicate": "all",
   "rules": [
       {
         "field": "subject",
@@ -10,6 +10,11 @@
         "field": "sender",
         "predicate": "contains",
         "value": "@gmail.com"
+      },
+      {
+        "field": "received_at",
+        "predicate": "less_than_days",
+        "value": "7"
       }
     ],
   "actions": [
