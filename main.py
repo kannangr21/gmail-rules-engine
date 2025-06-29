@@ -1,11 +1,13 @@
 from fetch_emails import fetch_and_store_emails
-from process_rules import process_emails
+from database.db import init_db
+from rules_engine.process_rules import process_emails
 
 def main():
     """
     Main function that orchestrates the Gmail Rules Engine workflow.
     """
     try:
+        init_db()                # Setup database if not exists
         fetch_and_store_emails() # Fetch and store emails from Gmail
         process_emails()         # Run rules engine and update emails as per actions 
     except Exception as e:

@@ -29,6 +29,21 @@ def init_db():
     conn.commit()
     conn.close()
 
-if __name__ == '__main__':
-    # Run database initialization when script is executed directly
-    init_db()
+def save_to_db(data):
+    """
+    Save email data to SQLite database
+    """
+    try:
+        conn = sqlite3.connect("emails.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO emails (id, thread_id, sender, recipient, subject, snippet, message_body, received_at, is_read, label_ids)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', data)
+        conn.commit()
+        conn.close()
+        print(f"Saved to database: {data[4][:40]}...")  # data[4] is subject
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+    except Exception as e:
+        print(f"Error saving to database: {e}")

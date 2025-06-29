@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 # Add the parent directory to the path so we can import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import process_rules
+from rules_engine import process_rules
 
 def test_matching_rule_triggers_action():
     mock_email = {
@@ -31,10 +31,10 @@ def test_matching_rule_triggers_action():
         "actions": ["mark_as_read"]
     }
 
-    with patch("process_rules.fetch_emails", return_value=[mock_email]), \
-         patch("process_rules.load_rules", return_value=mock_rules), \
-         patch("process_rules.authenticate_gmail", return_value=MagicMock()), \
-         patch.dict("process_rules.ACTIONS", {}, clear=True) as mock_actions:
+    with patch("rules_engine.process_rules.fetch_emails", return_value=[mock_email]), \
+         patch("rules_engine.process_rules.load_rules", return_value=mock_rules), \
+         patch("rules_engine.process_rules.authenticate_gmail", return_value=MagicMock()), \
+         patch.dict("rules_engine.process_rules.ACTIONS", {}, clear=True) as mock_actions:
 
         called = {"fired": False}
 

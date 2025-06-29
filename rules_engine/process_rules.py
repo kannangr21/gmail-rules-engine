@@ -1,9 +1,9 @@
 import json
 import sqlite3
 from fetch_emails import authenticate_gmail
-from rules_config.predicates import PREDICATES
-from rules_config.fields import FIELD_MAPPERS
-from rules_config.actions import ACTIONS
+from rules_engine.predicates import PREDICATES
+from rules_engine.fields import FIELD_MAPPERS
+from rules_engine.actions import ACTIONS
 
 def load_rules():
     """
@@ -11,7 +11,7 @@ def load_rules():
     Returns: Dictionary containing rules configuration
     """
     try:
-        with open("rules_config/rules.json") as f:
+        with open("rules_engine/rules.json") as f:
             return json.load(f)
     except Exception as e:
         print(f"Error loading rules: {e}")
