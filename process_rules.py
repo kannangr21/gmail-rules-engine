@@ -183,6 +183,8 @@ def process_emails():
                             print(f"Action '{action_type}' executed.")
                         except Exception as e:
                             print(f"Error executing '{action_type}': {e}")
+            else:
+                print(f"{email['subject']} - rules not matched")
     except Exception as e:
         print(f"Error in process_emails: {e}")
         raise
