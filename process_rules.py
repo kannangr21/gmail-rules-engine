@@ -154,37 +154,39 @@ def evaluate_rule(email, rule):
 def process_emails():
     try:
         service = authenticate_gmail()
-        rule_master = load_rules()
-        predicate_mode = rule_master.get("predicate", "all")
-        rules = rule_master.get("rules", [])
-        actions = rule_master.get("actions", [])
-
+        rule_blocks = load_rules()  # returns a list of rule group dicts
         emails = fetch_emails()
 
-        for email in emails:
-            condition_results = [evaluate_rule(email, r) for r in rules]
-            match = all(condition_results) if predicate_mode == "all" else any(condition_results)
+        for rule_config in rule_blocks:
+            predicate_mode = rule_config.get("predicate", "all")
+            rules = rule_config.get("rules", [])
+            actions = rule_config.get("actions", [])
 
-            if match:
-                print(f"Match: {email['subject']}")
-                for action in actions:
-                    if isinstance(action, dict):
-                        action_type = action["type"]
-                        action_value = action.get("value", None)
-                    else:
-                        action_type = action
-                        action_value = None
+            for email in emails:
+                condition_results = [evaluate_rule(email, r) for r in rules]
+                match = all(condition_results) if predicate_mode == "all" else any(condition_results)
 
-                    print(f"Attempting to run action: {action_type} with value: {action_value}")
+                if match:
+                    print(f"Matched (Rule): {email['subject']}")
+                    for action in actions:
+                        if isinstance(action, dict):
+                            action_type = action["type"]
+                            action_value = action.get("value")
+                        else:
+                            action_type = action
+                            action_value = None
 
-                    if action_type in ACTIONS:
-                        try:
-                            ACTIONS[action_type](email, service, action_value)
-                            print(f"Action '{action_type}' executed.")
-                        except Exception as e:
-                            print(f"Error executing '{action_type}': {e}")
-            else:
-                print(f"{email['subject']} - rules not matched")
+                        print(f"Attempting to run action: {action_type} with value: {action_value}")
+
+                        if action_type in ACTIONS:
+                            try:
+                                ACTIONS[action_type](email, service, action_value)
+                                print(f"Action '{action_type}' executed.")
+                            except Exception as e:
+                                print(f"Error executing '{action_type}': {e}")
+                else:
+                    print(f"{email['subject']} - rules not matched")
+
     except Exception as e:
         print(f"Error in process_emails: {e}")
         raise
