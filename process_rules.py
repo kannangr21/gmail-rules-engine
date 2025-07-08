@@ -2,6 +2,7 @@ import json
 import sqlite3
 from datetime import datetime
 from fetch_emails import authenticate_gmail
+import hashlib
 
 """
 ---------- Util functions ----------
@@ -113,6 +114,45 @@ FIELD_MAPPERS = {
 """
 ---------- Database function ----------
 """
+def init_tracking_table():
+    """
+    Initialize table to track processed rules if not exists
+    """
+    conn = sqlite3.connect("emails.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS processed_rules (
+            email_id TEXT,
+            rule_hash TEXT,
+            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (email_id, rule_hash)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def already_processed(email_id, rule_hash):
+    """
+    Function to return the status of the rule processed on a specific email
+    """
+    conn = sqlite3.connect("emails.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM processed_rules WHERE email_id = ? AND rule_hash = ?", (email_id, rule_hash))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+def mark_processed(email_id, rule_hash):
+    """
+    Insert an entry for rule processed on the email. Ignore if the rule has been already processed on an email
+    """
+    conn = sqlite3.connect("emails.db")
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO processed_rules (email_id, rule_hash) VALUES (?, ?)", (email_id, rule_hash))
+    conn.commit()
+    conn.close()
+
+
 def fetch_emails():
     """
     Fetch all emails from SQLite database
@@ -162,7 +202,15 @@ def process_emails():
             rules = rule_config.get("rules", [])
             actions = rule_config.get("actions", [])
 
+            # Generate the hash for the rule to uniquely map it with the email
+            rule_hash = hashlib.md5(json.dumps(rule_config, sort_keys=True).encode()).hexdigest()
+
             for email in emails:
+                # Continue with the action processing logic if the event is not processed already
+                if already_processed(email["id"], rule_hash):
+                    print(f"Email already processed: {email['subject']}")
+                    continue
+
                 condition_results = [evaluate_rule(email, r) for r in rules]
                 match = all(condition_results) if predicate_mode == "all" else any(condition_results)
 
@@ -184,6 +232,8 @@ def process_emails():
                                 print(f"Action '{action_type}' executed.")
                             except Exception as e:
                                 print(f"Error executing '{action_type}': {e}")
+                    # Store the rule processed status in the table
+                    mark_processed(email["id"], rule_hash)
                 else:
                     print(f"{email['subject']} - rules not matched")
 
@@ -196,4 +246,5 @@ def process_emails():
 ---------- Execution ----------
 """
 if __name__ == "__main__":
+    init_tracking_table()
     process_emails()
